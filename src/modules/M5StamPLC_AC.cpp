@@ -56,7 +56,7 @@ bool M5StamPLC_AC::readRelay()
         return false;
     }
 
-    return _ioe->digitalRead(_pin_relay);
+    return _ioe->getWriteValue(_pin_relay);
 }
 
 void M5StamPLC_AC::writeRelay(const bool& state)
