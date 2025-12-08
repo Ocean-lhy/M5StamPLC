@@ -73,6 +73,11 @@ void M5_STAMPLC::io_expander_a_init()
     ioe.setHighImpedance(6, true);
 }
 
+m5::IOExpander_Base& M5_STAMPLC::getIOExpanderA()
+{
+    return M5.getIOExpander(0);
+}
+
 void M5_STAMPLC::setBacklight(bool on)
 {
     auto& ioe = M5.getIOExpander(0);
@@ -136,6 +141,11 @@ void M5_STAMPLC::io_expander_b_init()
 
         _io_expander_b->disableIrq();
     }
+}
+
+AW9523_Class& M5_STAMPLC::getIOExpanderB()
+{
+    return *_io_expander_b;
 }
 
 bool M5_STAMPLC::readPlcInput(const uint8_t& channel)
