@@ -8,8 +8,10 @@
 
 static const char* _tag = "M5StamPLC_IO";
 
-bool M5StamPLC_IO::begin(uint8_t addr)
+bool M5StamPLC_IO::begin(uint8_t addr, bool debug)
 {
+    esp_log_level_set(_tag, debug ? ESP_LOG_DEBUG : ESP_LOG_NONE);
+
     if (addr == 0) {
         _current_addr = scanI2CDevices();
         if (_current_addr == 0) {
@@ -319,17 +321,23 @@ void M5StamPLC_IO::writeINA226Config(uint8_t channel, uint16_t config)
         return;
     }
 
-    uint8_t lsb = config & 0xFF;
-    uint8_t msb = (config >> 8) & 0xFF;
+    uint8_t data[2];
+    data[0] = config & 0xFF;
+    data[1] = (config >> 8) & 0xFF;
 
+    uint8_t start_reg;
     if (channel == 1) {
-        writeRegister(REG_INA226_CONFIG_CH1_LSB, lsb);
-        writeRegister(REG_INA226_CONFIG_CH1_MSB, msb);
+        start_reg = REG_INA226_CONFIG_CH1_LSB;
     } else if (channel == 2) {
-        writeRegister(REG_INA226_CONFIG_CH2_LSB, lsb);
-        writeRegister(REG_INA226_CONFIG_CH2_MSB, msb);
+        start_reg = REG_INA226_CONFIG_CH2_LSB;
     } else {
         ESP_LOGW(_tag, "Invalid channel: %d", channel);
+        return;
+    }
+
+    bool success = m5::In_I2C.writeRegister(_current_addr, start_reg, data, 2, 400000);
+    if (!success) {
+        ESP_LOGW(_tag, "Failed to write CH%d INA226 config", channel);
         return;
     }
 
@@ -392,4 +400,102 @@ esp_err_t M5StamPLC_IO::getINA226Averaging(uint8_t channel, uint8_t* avg)
 
     *avg = (config & INA226_AVG_MASK) >> 9;
     return ESP_OK;
+}
+
+void M5StamPLC_IO::setPWMMode(bool enable)
+{
+    uint8_t currentState = readRegister(REG_IO_CONTROL);
+    uint8_t newState;
+
+    if (enable) {
+        newState = currentState | (1 << BIT_PWM_MODE);
+        ESP_LOGI(_tag, "Enable PWM mode");
+    } else {
+        newState = currentState & ~(1 << BIT_PWM_MODE);
+        ESP_LOGI(_tag, "Disable PWM mode");
+    }
+
+    if (newState != currentState) {
+        writeRegister(REG_IO_CONTROL, newState);
+    }
+}
+
+bool M5StamPLC_IO::getPWMMode()
+{
+    uint8_t state = readRegister(REG_IO_CONTROL);
+    return (state & (1 << BIT_PWM_MODE)) != 0;
+}
+
+void M5StamPLC_IO::setPWMFrequency(uint8_t freq)
+{
+    if (freq < 1 || freq > 100) {
+        ESP_LOGW(_tag, "Invalid PWM frequency: %d, must be 1-100 Hz", freq);
+        return;
+    }
+
+    writeRegister(REG_PWM_FREQ, freq);
+    ESP_LOGI(_tag, "Set PWM frequency: %d Hz", freq);
+}
+
+uint8_t M5StamPLC_IO::getPWMFrequency()
+{
+    return readRegister(REG_PWM_FREQ);
+}
+
+void M5StamPLC_IO::setChannelDuty(uint8_t channel, uint16_t duty)
+{
+    if (_current_addr == 0) {
+        ESP_LOGE(_tag, "Device not initialized");
+        return;
+    }
+
+    if (duty > 1000) {
+        ESP_LOGW(_tag, "Invalid duty cycle: %d, must be 0-1000", duty);
+        return;
+    }
+
+    uint8_t data[2];
+    data[0] = duty & 0xFF;
+    data[1] = (duty >> 8) & 0xFF;
+
+    uint8_t start_reg;
+    if (channel == 1) {
+        start_reg = REG_CH1_DUTY_LSB;
+    } else if (channel == 2) {
+        start_reg = REG_CH2_DUTY_LSB;
+    } else {
+        ESP_LOGW(_tag, "Invalid channel: %d", channel);
+        return;
+    }
+
+    bool success = m5::In_I2C.writeRegister(_current_addr, start_reg, data, 2, 400000);
+    if (!success) {
+        ESP_LOGW(_tag, "Failed to write CH%d duty cycle", channel);
+        return;
+    }
+
+    ESP_LOGI(_tag, "Set CH%d duty cycle: %d/1000 (%d%%)", channel, duty, duty / 10);
+}
+
+uint16_t M5StamPLC_IO::getChannelDuty(uint8_t channel)
+{
+    uint8_t data[2];
+    uint8_t start_reg;
+
+    if (channel == 1) {
+        start_reg = REG_CH1_DUTY_LSB;
+    } else if (channel == 2) {
+        start_reg = REG_CH2_DUTY_LSB;
+    } else {
+        ESP_LOGW(_tag, "Invalid channel: %d", channel);
+        return 0;
+    }
+
+    if (m5::In_I2C.readRegister(_current_addr, start_reg, data, 2, 400000)) {
+        uint16_t duty = (data[1] << 8) | data[0];
+        return duty;
+    } else {
+        ESP_LOGW(_tag, "Failed to read CH%d duty cycle", channel);
+        return 0;
+    }
 }

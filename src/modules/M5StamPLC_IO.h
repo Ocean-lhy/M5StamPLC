@@ -28,6 +28,11 @@ public:
     static constexpr uint8_t REG_I_CH2_EXT1    = 0x0A;
     static constexpr uint8_t REG_I_CH2_EXT2    = 0x0B;
     static constexpr uint8_t REG_IO_CONTROL    = 0x10;
+    static constexpr uint8_t REG_PWM_FREQ      = 0x30;
+    static constexpr uint8_t REG_CH1_DUTY_LSB  = 0x31;
+    static constexpr uint8_t REG_CH1_DUTY_MSB  = 0x32;
+    static constexpr uint8_t REG_CH2_DUTY_LSB  = 0x33;
+    static constexpr uint8_t REG_CH2_DUTY_MSB  = 0x34;
     static constexpr uint8_t REG_SYSTEM_STATUS = 0xFB;
     static constexpr uint8_t REG_FIRMWARE_VER  = 0xFE;
     static constexpr uint8_t REG_ADDR_CONFIG   = 0xFF;
@@ -49,6 +54,7 @@ public:
     static constexpr uint8_t BIT_CH1_PU_EN  = 2;
     static constexpr uint8_t BIT_CH2_PU_EN  = 3;
     static constexpr uint8_t BIT_RELAY_TRIG = 4;
+    static constexpr uint8_t BIT_PWM_MODE   = 5;
 
     // SYSTEM STATUS BIT DEFINITION
     static constexpr uint8_t SYS_CH1_INA226_ERROR = 0;
@@ -82,10 +88,11 @@ public:
      * @brief Initialize M5StamPLC-IO
      *
      * @param addr I2C address (0x20-0x2F), if 0 will auto-scan
+     * @param debug Enable debug logging (default: false)
      * @return true if initialization successful
      * @return false if initialization failed
      */
-    bool begin(uint8_t addr = 0);
+    bool begin(uint8_t addr = 0, bool debug = false);
 
     /**
      * @brief Scan for I2C devices
@@ -259,6 +266,50 @@ public:
     {
         return _current_addr;
     }
+
+    /**
+     * @brief Set PWM mode
+     *
+     * @param enable true for PWM mode, false for IO mode
+     */
+    void setPWMMode(bool enable);
+
+    /**
+     * @brief Get PWM mode
+     *
+     * @return true if PWM mode enabled
+     */
+    bool getPWMMode();
+
+    /**
+     * @brief Set PWM frequency
+     *
+     * @param freq frequency in Hz (1-100), default 50
+     */
+    void setPWMFrequency(uint8_t freq);
+
+    /**
+     * @brief Get PWM frequency
+     *
+     * @return frequency in Hz
+     */
+    uint8_t getPWMFrequency();
+
+    /**
+     * @brief Set channel duty cycle
+     *
+     * @param channel 1 or 2
+     * @param duty duty cycle in permille (0-1000), default 0
+     */
+    void setChannelDuty(uint8_t channel, uint16_t duty);
+
+    /**
+     * @brief Get channel duty cycle
+     *
+     * @param channel 1 or 2
+     * @return duty cycle in permille (0-1000)
+     */
+    uint16_t getChannelDuty(uint8_t channel);
 
 protected:
     uint8_t _current_addr = 0;
