@@ -25,8 +25,7 @@ void setup()
         delay(1000);
     }
 
-    canvas.printf("Found: 0x%02X  FW: 0x%02X\n", stamplc_io.getCurrentAddress(),
-                  stamplc_io.getFirmwareVersion());
+    canvas.printf("Found: 0x%02X  FW: 0x%02X\n", stamplc_io.getCurrentAddress(), stamplc_io.getFirmwareVersion());
 
     uint8_t sys_status = stamplc_io.getSystemStatus();
     canvas.setTextColor(sys_status == 0 ? TFT_GREEN : TFT_RED);
@@ -81,13 +80,11 @@ void loop()
         canvas.printf("CH2: %d.%02dV %duA\n", v2 / 1000, abs(v2 % 1000) / 10, i2);
 
         canvas.setTextColor(TFT_YELLOW);
-        canvas.printf("Pull-up: CH1=%s CH2=%s\n",
-                      (io_ctrl & (1 << M5StamPLC_IO::BIT_CH1_PU_EN)) ? "ON" : "OFF",
+        canvas.printf("Pull-up: CH1=%s CH2=%s\n", (io_ctrl & (1 << M5StamPLC_IO::BIT_CH1_PU_EN)) ? "ON" : "OFF",
                       (io_ctrl & (1 << M5StamPLC_IO::BIT_CH2_PU_EN)) ? "ON" : "OFF");
 
         canvas.setTextColor(TFT_MAGENTA);
-        canvas.printf("Addr: 0x%02X  DIP: 0x%02X\n", stamplc_io.getCurrentAddress(),
-                      stamplc_io.getExpectedAddress());
+        canvas.printf("Addr: 0x%02X  DIP: 0x%02X\n", stamplc_io.getCurrentAddress(), stamplc_io.getExpectedAddress());
 
         canvas.setTextColor(sys_status == 0 ? TFT_GREEN : TFT_RED);
         canvas.printf("System: %s\n", sys_status == 0 ? "Normal" : "Error");
